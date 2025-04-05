@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Room {{ code | default('Unknown') }} | Hermius</title>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        .sidebar {
+            position: absolute;
+            top: 4.6rem;
+            bottom: 3.6rem;
+            width: 20%;
+            overflow-y: auto;
+            background-color: black;
+            padding: 1rem;
+            border-right: 2px solid #a855f7; /* Tailwind purple-500 */
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+        }
+    
+        .main-chat {
+        margin-left: auto;
+        margin-right: auto;
+        padding: 1rem;
+        max-width: 72rem; /* same as max-w-6xl */
+        min-height: calc(100vh - 8.2rem);
+        }
+
+    </style>
+    
+</head>
+<body class="bg-black text-purple-400">
+
+
+<!-- Header -->
+<header class="bg-black border-b-2 border-purple-500 shadow-md py-4">
+    <div class="text-5xl max-w-6xl mx-auto px-4 flex justify-between items-center">
+    <a href="{{ url_for('main_routes.home') }}" class="text-purple-400 hover:text-purple-600 text-4xl font-bold mx-auto">⟁ Hermius ⟁</a>
+    <span class="text-purple-600 text-sm sm:text-base absolute top-6 right-4">Room Code: <strong>{{ code }}</strong></span>
+    </div>
+  </header>
+  
+  <!-- Main Content -->
+  <main class="flex flex-grow max-w-6xl mx-auto mt-8 min-h-[90vh]">
+  
+    <!-- Sidebar -->
+    <aside class="w-64 bg-black border-r-2 border-purple-500 p-4 shadow-md">
+      <h2 class="text-2xl font-bold text-purple-500 mb-4">Users in Room</h2>
+      <ul id="user-list" class="text-purple-400 space-y-1"></ul>
+    </aside>
+  
+    <!-- Chat Area -->
+    <div class="flex-grow p-4">
+        <div class="bg-black border-2 border-purple-500 rounded-lg p-4 h-full mb-4 shadow-md flex flex-col">
+        <div id="chat-box" class="text-purple-400"></div>
+      </div>
+  
+      <!-- Typing indicator -->
+      <div id="typing-indicator" class="text-sm italic text-purple-500 mb-2"></div>
+  
+      <!-- Chat Form -->
+      <form id="chat-form" class="flex space-x-2">
+        <input id="message-input" type="text" placeholder="Type your message..." class="flex-grow p-2 rounded border-2 border-purple-500 bg-black text-purple-300 focus:outline-none">
+        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">Send</button>
+        <button id="disconnect-btn" class="ml-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Disconnect</button>
+      </form>
+    </div>
+  </main>
+  
+  <!-- Footer -->
+<footer class="fixed bottom-0 left-0 w-full p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
+    <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
+    <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
+    <a href="{{ url_for('utility_routes.contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
+</footer>
+    
+<!-- Scripts -->
+<script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+
+<script>
+    const socket = io();
+    const room = "{{ code }}";
+    const username = "{{ session['name'] }}";
+
+    const chatBox = document.getElementById("chat-box");
+    const userList = document.getElementById("user-list");
+    const typingIndicator = document.getElementById("typing-indicator");
+    const input = document.getElementById("message-input");
+
+    // Load old messages
+    fetch(`/initial_messages/${room}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.messages) {
+                data.messages.forEach(msg => {
+                    const sender = msg.user === username ? "You" : msg.user;
+                    const div = document.createElement("div");
+                    div.innerHTML = `<strong>${sender}:</strong> ${msg.message} <span class="text-xs text-gray-500">(${msg.time})</span>`;
+                    div.classList.add("mb-2", "text-purple-400");
+                    chatBox.appendChild(div);
+                });
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        })
+        .catch(err => console.error("Failed to load messages:", err));
+
+    // Join room once connected
+    socket.on("connect", () => {
+        socket.emit("join_room", { room, username });
+        input.focus();
+    });
+
+    socket.on("receive_message", data => {
+        if (data && data.username && data.message) {
+            const isSelf = data.username === username;
+            const sender = isSelf ? "You" : data.username;
+
+            const div = document.createElement("div");
+            div.innerHTML = `<strong>${sender}:</strong> ${data.message} <span class="text-xs text-gray-500">(${data.time || 'Just now'})</span>`;
+            div.classList.add("mb-2", "text-purple-400");
+            chatBox.appendChild(div);
+
+            setTimeout(() => {
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 100);
+        } else {
+            console.error("Invalid message received:", data);
+        }
+    });
+
+    // Show server events (join/leave announcements)
+    socket.on("server_message", data => {
+        const popup = document.createElement("div");
+        popup.innerHTML = `<em>${data.msg}</em>`;
+        popup.classList.add("fixed", "bottom-40", "right-4", "bg-purple-600", "text-white", "p-2", "rounded", "shadow-md", "opacity-90", "transition", "duration-100", "ease-in-out");
+        document.body.appendChild(popup);
+
+        setTimeout(() => {
+            popup.style.opacity = "0";
+            setTimeout(() => popup.remove(), 100);
+        }, 3000);
+    });
+
+    // Update user list
+    socket.on("update_user_list", users => {
+        userList.innerHTML = "";
+        users.forEach(user => {
+            const li = document.createElement("li");
+            li.textContent = user;
+            userList.appendChild(li);
+        });
+    });
+
+    // Typing indicator
+    socket.on("user_typing", data => {
+        typingIndicator.textContent = `${data.username} is typing...`;
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => typingIndicator.textContent = "", 2000);
+    });
+
+    socket.on("user_stopped_typing", data => {
+        typingIndicator.textContent = "";
+    });
+
+    let typingTimeout;
+    input.addEventListener("input", () => {
+        socket.emit("typing", { room, username });
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            socket.emit("stop_typing", { room, username });
+        }, 2000);
+    });
+
+    document.getElementById("chat-form").addEventListener("submit", e => {
+        e.preventDefault();
+        const msg = input.value.trim();
+        if (msg) {
+            socket.emit("send_message", { room, message: msg });
+            input.value = "";
+            socket.emit("stop_typing", { room, username });
+        }
+    });
+
+    document.getElementById("disconnect-btn").addEventListener("click", () => {
+        socket.emit("leave_room", { room, username });
+        socket.disconnect();
+        window.location.href = "/";
+    });
+
+    window.addEventListener("beforeunload", () => {
+        socket.emit("leave_room", { room, username });
+    });
+</script>
+</body>
+</html>

@@ -80,7 +80,7 @@ def user_profile():
     c = conn.cursor()
     user = c.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
     conn.close()
-    member_since = datetime.strptime(user[4], '%Y-%m-%d %H:%M:%S')
+    member_since = datetime.strptime(user[4], '%Y-%m-%d %H:%M:%S.%f')
     return render_template('user_profile.html', user=username, email=user['email'], member_since=member_since)
 
 @auth_routes.route("/delete_account", methods=["POST"])
@@ -118,38 +118,56 @@ def modify_account():
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')
 
-        # Fetch current user details
         user = c.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+        current_username, current_email = user['username'], user['email']
 
         if not user:
             conn.close()
             flash('User not found.', 'error')
             return redirect(url_for('auth_routes.login'))
 
-        if new_username:
-            c.execute('UPDATE users SET username = ? WHERE username = ?', (new_username, username))
-            session['username'] = new_username
-            flash('Username updated successfully!', 'success')
-            username = new_username  # Update local reference too
+        if new_username and new_username != current_username:
+            username_taken = c.execute('SELECT * FROM users WHERE username = ?', (new_username,)).fetchone()
+            if username_taken:
+                flash('Username already taken.', 'error')
+                return redirect(url_for('auth_routes.modify_account'))
+            else:
+                c.execute('UPDATE users SET username = ? WHERE username = ?', (new_username, username))
+                session['username'] = new_username
+                flash('Username updated successfully!', 'success')
+                username = new_username
+        elif new_username == current_username:
+            flash('New username must be different from current username.', 'info')
+            return redirect(url_for('auth_routes.modify_account'))
 
-        if new_email:
+        if new_email and new_email != current_email:
             c.execute('UPDATE users SET email = ? WHERE username = ?', (new_email, username))
             flash('Email updated successfully!', 'success')
+        elif new_email == current_email:
+            flash('New email must be different from current email.', 'info')
+            return redirect(url_for('auth_routes.modify_account'))
 
         if old_password and new_password and confirm_password:
             if check_password_hash(user['password'], old_password):
-                if new_password == confirm_password:
+                if check_password_hash(user['password'], new_password):
+                    flash('New password must be different from old password.', 'error')
+                    return redirect(url_for('auth_routes.modify_account'))
+                elif new_password != confirm_password:
+                    flash('New passwords do not match.', 'error')
+                    return redirect(url_for('auth_routes.modify_account'))
+                else:
                     hashed = generate_password_hash(new_password)
                     c.execute('UPDATE users SET password = ? WHERE username = ?', (hashed, username))
                     flash('Password updated successfully!', 'success')
-                else:
-                    flash('New passwords do not match.', 'error')
             else:
                 flash('Old password is incorrect.', 'error')
+                return redirect(url_for('auth_routes.modify_account'))
 
         conn.commit()
         conn.close()
-        return redirect(url_for('auth_routes.modify_account'))
+
+        flash(f'Account modified successfully! Check <a href="{url_for("auth_routes.user_profile")}" class="underline text-purple-400 hover:text-purple-600">dashboard</a> to know more.', 'success')
+        return redirect(url_for("main_routes.home"))
 
     conn.close()
     return render_template("modify_account.html", username=username)

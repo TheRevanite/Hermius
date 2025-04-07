@@ -68,7 +68,7 @@
         {% if messages %}
             <ul class="flashes">
                 {% for category, message in messages %}
-                    <li class="{{ category }} text-purple-800">{{ message }}</li>
+                    <li class="{{ category }} text-purple-800">{{ message|safe }}</li>
                 {% endfor %}
             </ul>
         {% endif %}
@@ -119,21 +119,21 @@
     </aside>
 
     <script>
-        async function fetchActiveUsers() {
-            try {
-                const response = await fetch('/active_users');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                const usersOnlineElement = document.getElementById('users-online');
-                usersOnlineElement.textContent = `${data.active_users} users online`;
-            } catch (error) {
-                console.error('Error fetching active users:', error);
+        async function fetchTotalUsers() {
+        try {
+            const response = await fetch('/active_users');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
+            const data = await response.json();
+            const usersOnlineElement = document.getElementById('users-online');
+            usersOnlineElement.textContent = `${data.count} users online`;
+        } catch (error) {
+            console.error('Error fetching active users:', error);
         }
+    }
 
-        document.addEventListener('DOMContentLoaded', fetchActiveUsers);
+    document.addEventListener('DOMContentLoaded', fetchTotalUsers);
     </script>
 
     <!-- Main Content -->

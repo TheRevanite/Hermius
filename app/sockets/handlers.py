@@ -3,20 +3,25 @@ from flask import request, session
 import sqlite3
 from datetime import datetime
 import random
+
 from app.utils.helpers import caesar_encrypt
-rooms = {}
-room_users = {}
+from app.state import (
+    rooms,
+    add_user_to_room,
+    remove_user_from_room,
+    update_room_activity,
+    get_active_users_in_room,
+)
 
 def register_socketio_events(socketio: SocketIO):
-    
+
     @socketio.on("connect")
     def connect(auth):
         room = session.get("room")
         name = session.get("name")
-        print(f"User connected: {name} to room {room}")
         if not room or not name:
             return
-        
+
         if room not in rooms:
             leave_room(room)
             return
@@ -24,7 +29,6 @@ def register_socketio_events(socketio: SocketIO):
         join_room(room)
         send({"name": name, "message": "has entered the room!"}, to=room)
         rooms[room]["members"] += 1
-        print(f"{name} joined room {room}")
 
     @socketio.on("disconnect_request")
     def disconnect_request():
@@ -38,8 +42,9 @@ def register_socketio_events(socketio: SocketIO):
             if rooms[room]["members"] <= 0:
                 del rooms[room]
 
+        remove_user_from_room(room, name)
+
         send({"name": name, "message": "has left the room"}, to=room)
-        print(f"{name} has left the room {room}")
 
         emit("force_disconnect")
 
@@ -59,12 +64,10 @@ def register_socketio_events(socketio: SocketIO):
         session["room"] = room
 
         join_room(room)
-        room_users.setdefault(room, set()).add(username)
+        add_user_to_room(room, username)
 
         emit("server_message", {"msg": f"{username} has joined the room."}, room=room)
-        emit("update_user_list", list(room_users[room]), room=room)
-
-
+        emit("update_user_list", list(get_active_users_in_room(room)), room=room)
 
     @socketio.on("leave_room")
     def handle_leave(data):
@@ -72,18 +75,16 @@ def register_socketio_events(socketio: SocketIO):
         username = data.get("username", "Anonymous")
 
         leave_room(room)
-
-        if room in room_users and username in room_users[room]:
-            room_users[room].remove(username)
+        remove_user_from_room(room, username)
 
         emit("server_message", {"msg": f"{username} has left the room."}, room=room)
-        emit("update_user_list", list(room_users.get(room, [])), room=room)
+        emit("update_user_list", list(get_active_users_in_room(room)), room=room)
 
     @socketio.on("get_users")
     def handle_get_users(data):
         room = data.get("room")
-        if room and room in room_users:
-            emit("update_user_list", list(room_users[room]), room=room)
+        if room:
+            emit("update_user_list", list(get_active_users_in_room(room)), room=room)
 
     @socketio.on("typing")
     def handle_typing(data):
@@ -108,8 +109,6 @@ def register_socketio_events(socketio: SocketIO):
         message = data["message"]
         encrypted_message = caesar_encrypt(message)
 
-        print(f"[DEBUG] Saving message in room {room}: {message} (Encrypted: {encrypted_message})")
-
         try:
             conn = sqlite3.connect('main.db')
             c = conn.cursor()
@@ -118,18 +117,17 @@ def register_socketio_events(socketio: SocketIO):
                 VALUES (?, ?, ?, ?)
             """, (room, username, encrypted_message, datetime.now()))
             conn.commit()
-            print("[DEBUG] Message inserted successfully.")
         except sqlite3.Error as e:
             print(f"[ERROR] Database Error: {e}")
         finally:
             conn.close()
+
+        # Update room activity timestamp
+        update_room_activity(room)
+
         formatted_time = datetime.now().strftime("%I:%M %p")
-        print(f"[DEBUG] Emitting to room: {room} | User: {username} | Message: {message}")
         emit("receive_message", {
             "username": username,
             "message": message,
             "time": formatted_time
         }, to=room)
-        print(f"[DEBUG] Emit complete.")
-
-

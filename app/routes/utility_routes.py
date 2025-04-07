@@ -1,9 +1,9 @@
 from flask import Blueprint, jsonify, render_template, request, session, redirect, url_for, flash
 from flask_mail import Message
 from app.database.db import get_db_connection
-from app.routes.main_routes import rooms
 from app.extensions import mail
 from app.config import Config
+from app.state import rooms, room_users, total_active_users
 
 utility_routes = Blueprint("utility_routes", __name__)
 
@@ -76,10 +76,15 @@ def get_messages(room):
     return jsonify(messages=message_list)
 
 
-@utility_routes.route('/active_users', methods=['GET'])
-def active_users():
-    total_users = sum(room["members"] for room in rooms.values())
-    return jsonify(active_users=total_users)
+@utility_routes.route('/active_users', defaults={'room': None})
+@utility_routes.route('/active_users/<room>')
+def active_users(room):
+    if room:
+        users = room_users.get(room, set())
+        return jsonify({'room': room, 'count': len(users)})
+    else:
+        total = total_active_users()
+        return jsonify({'count': total})
 
 @utility_routes.route('/active_rooms', methods=['GET'])
 def active_rooms():

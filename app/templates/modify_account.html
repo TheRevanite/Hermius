@@ -19,6 +19,17 @@
             transform: scale(1.05);
             transition: transform 0.2s ease-in-out;
         }
+        .flashes {
+            position: absolute;
+            bottom: 5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 2px solid #ffffff;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            z-index: 50;
+        }
     </style>
 </head>
 <body class="bg-black text-purple-800">
@@ -67,15 +78,15 @@
                     <div id="change-password-section" class="space-y-4 mt-4">
                         <div>
                             <label for="old-password" class="block text-purple-500 font-semibold">Old Password:</label>
-                            <input type="password" id="old-password" name="old_password" class="p-2 rounded bg-black border-2 border-purple-500 text-purple-800 w-full focus:ring-2 focus:ring-purple-600 outline-none" required>
+                            <input type="password" id="old_password" name="old_password" class="p-2 rounded bg-black border-2 border-purple-500 text-purple-800 w-full focus:ring-2 focus:ring-purple-600 outline-none">
                         </div>
                         <div>
                             <label for="new-password" class="block text-purple-500 font-semibold">New Password:</label>
-                            <input type="password" id="new-password" name="new_password" class="p-2 rounded bg-black border-2 border-purple-500 text-purple-800 w-full focus:ring-2 focus:ring-purple-600 outline-none" required>
+                            <input type="password" id="new_password" name="new_password" class="p-2 rounded bg-black border-2 border-purple-500 text-purple-800 w-full focus:ring-2 focus:ring-purple-600 outline-none">
                         </div>
                         <div>
                             <label for="confirm-password" class="block text-purple-500 font-semibold">Confirm Password:</label>
-                            <input type="password" id="confirm-password" name="confirm_password" class="p-2 rounded bg-black border-2 border-purple-500 text-purple-800 w-full focus:ring-2 focus:ring-purple-600 outline-none" required>
+                            <input type="password" id="confirm_password" name="confirm_password" class="p-2 rounded bg-black border-2 border-purple-500 text-purple-800 w-full focus:ring-2 focus:ring-purple-600 outline-none">
                         </div>
                     </div>
                     <button type="submit" class="bg-purple-600 text-white p-2 rounded w-full font-semibold shadow hover:bg-purple-700">Update Account</button>
@@ -83,20 +94,35 @@
             </div>
         </main>
     </div>
-
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=True) %}
+        {% if messages %}
+            <ul class="flashes">
+                {% for category, message in messages %}
+                    <li class="{{ category }} text-purple-800">{{ message|safe }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
     <!-- Footer -->
     <footer class="footer p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
         <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
         <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
         <a href="{{ url_for('utility_routes.contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
     </footer>
-
     <script>
-        document.getElementById('year').textContent = new Date().getFullYear();
-
         function togglePasswordSection() {
             const section = document.getElementById('change-password-section');
-            section.style.display = section.style.display === 'none' || section.style.display === '' ? 'block' : 'none';
+            const isVisible = section.style.display === 'block';
+
+            // Toggle visibility
+            section.style.display = isVisible ? 'none' : 'block';
+
+            // Set or remove 'required' based on visibility
+            const inputs = section.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.required = !isVisible;
+            });
         }
     </script>
     <script>

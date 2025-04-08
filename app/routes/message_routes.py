@@ -1,7 +1,7 @@
-from flask import Blueprint, request, redirect, url_for, session, flash, render_template, jsonify
+from flask import Blueprint, request, redirect, url_for, session, flash, jsonify
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from ..database.db import get_db_connection  # Assumes this function exists
 from functools import wraps
 
@@ -20,7 +20,7 @@ def allowed_file(filename):
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'username' not in session:
+        if 'name' not in session:
             flash("You must be logged in to perform this action.", "error")
             return redirect(url_for("auth_routes.login"))
         return f(*args, **kwargs)
@@ -29,92 +29,99 @@ def login_required(f):
 
 # --- Routes ---
 
-@message_routes.route("/messages/delete/<int:message_id>", methods=["POST"])
+@message_routes.route("/initial_messages/<room>", methods=["GET"])
+@login_required
+def initial_messages(room):
+    conn = get_db_connection()
+    c = conn.cursor()
+    messages = c.execute(
+        "SELECT id AS message_id, user, content AS message, edited_at IS NOT NULL AS edited, created_at AS time "
+        "FROM messages WHERE room = ? ORDER BY created_at ASC", (room,)
+    ).fetchall()
+    conn.close()
+    return jsonify({"messages": [dict(msg) for msg in messages]})
+
+
+@message_routes.route("/delete_message/<int:message_id>", methods=["POST"])
 @login_required
 def delete_message(message_id):
     conn = get_db_connection()
     c = conn.cursor()
 
-    username = session["username"]
+    username = session["name"]
     message = c.execute("SELECT * FROM messages WHERE id = ?", (message_id,)).fetchone()
 
-    if message and message["sender"] == username:
+    if message and message["user"] == username:
         c.execute("DELETE FROM messages WHERE id = ?", (message_id,))
         conn.commit()
-        flash("Message deleted successfully.", "success")
+        conn.close()
+        return jsonify({"success": True, "message": "Message deleted successfully."})
     else:
-        flash("You can only delete your own messages.", "error")
-
-    conn.close()
-    return redirect(request.referrer or url_for("main_routes.home"))
+        conn.close()
+        return jsonify({"success": False, "error": "You can only delete your own messages."})
 
 
-@message_routes.route("/messages/edit/<int:message_id>", methods=["POST"])
+@message_routes.route("/edit_message/<int:message_id>", methods=["POST"])
 @login_required
 def edit_message(message_id):
-    new_content = request.form.get("edited_message")
+    data = request.get_json()
+    new_content = data.get("message")
     conn = get_db_connection()
     c = conn.cursor()
 
-    username = session["username"]
+    username = session["name"]
     message = c.execute("SELECT * FROM messages WHERE id = ?", (message_id,)).fetchone()
 
-    if message and message["sender"] == username:
+    if message and message["user"] == username:
         c.execute(
             "UPDATE messages SET content = ?, edited_at = ? WHERE id = ?",
-            (new_content, datetime.utcnow(), message_id)
+            (new_content, datetime.now(timezone.utc), message_id)
         )
         conn.commit()
-        flash("Message edited successfully.", "success")
+        conn.close()
+        return jsonify({"success": True, "message": "Message edited successfully."})
     else:
-        flash("You can only edit your own messages.", "error")
-
-    conn.close()
-    return redirect(request.referrer or url_for("main_routes.home"))
+        conn.close()
+        return jsonify({"success": False, "error": "You can only edit your own messages."})
 
 
-@message_routes.route("/messages/report/<int:message_id>", methods=["POST"])
+@message_routes.route("/report_message/<int:message_id>", methods=["POST"])
 @login_required
 def report_message(message_id):
-    reason = request.form.get("reason", "No reason provided")
+    data = request.get_json()
+    reason = data.get("reason", "No reason provided")
     conn = get_db_connection()
     c = conn.cursor()
 
-    reporter = session["username"]
+    reporter = session["name"]
     c.execute(
         "INSERT INTO reports (message_id, reporter, reason, reported_at) VALUES (?, ?, ?, ?)",
-        (message_id, reporter, reason, datetime.utcnow())
+        (message_id, reporter, reason, datetime.now(timezone.utc))
     )
     conn.commit()
     conn.close()
-    flash("Message reported. Thank you for helping us keep Hermius safe.", "success")
-    return redirect(request.referrer or url_for("main_routes.home"))
+    return jsonify({"success": True, "message": "Message reported successfully."})
 
 
-@message_routes.route("/media/upload", methods=["POST"])
+@message_routes.route("/upload_media", methods=["POST"])
 @login_required
 def upload_media():
     if "media" not in request.files:
-        flash("No file part", "error")
-        return redirect(request.referrer)
+        return jsonify({"success": False, "error": "No file part"})
 
     file = request.files["media"]
 
     if file.filename == "":
-        flash("No selected file", "error")
-        return redirect(request.referrer)
+        return jsonify({"success": False, "error": "No selected file"})
 
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         filepath = os.path.join(UPLOAD_FOLDER, filename)
         file.save(filepath)
 
-        # Optional: Save path to DB if you're attaching it to a message
-        flash("File uploaded successfully!", "success")
         return jsonify({
             "success": True,
             "url": url_for("static", filename=f"uploads/{filename}")
         })
 
-    flash("File type not allowed.", "error")
-    return jsonify({"success": False})
+    return jsonify({"success": False, "error": "File type not allowed."})

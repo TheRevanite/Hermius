@@ -1,17 +1,30 @@
+<!-- Full updated code -->
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Room {{ code | default('Unknown') }} | Hermius</title>
-    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.2/dist/index.min.js"></script>
-    <style>
-        html, body {
-            height: 100%;
-        }
-
-        .sidebar {
+    <head>
+        <meta charset="UTF-8" />
+        <title>Room {{ code | default('Unknown') }} | Hermius</title>
+      
+        <!-- Socket.IO -->
+        <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+      
+        <!-- Tailwind CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+      
+        <!-- EmojiMart v5 via ESM.sh (Module) -->
+        <script type="module">
+          import { Picker } from "https://esm.sh/emoji-mart@5.6.0";
+          import data from "https://esm.sh/@emoji-mart/data";
+      
+          // Make them available globally
+          window.EmojiMart = { Picker };
+          window.EmojiMartIndex = data;
+        </script>
+      
+        <style>
+          html, body { height: 100%; }
+      
+          .sidebar {
             position: absolute;
             top: 4.6rem;
             bottom: 3.6rem;
@@ -19,356 +32,415 @@
             overflow-y: auto;
             background-color: black;
             padding: 1rem;
-            border-right: 2px solid #a855f7; /* Tailwind purple-500 */
+            border-right: 2px solid #a855f7;
             box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
-        }
-    
-        .main-chat {
-        margin-left: auto;
-        margin-right: auto;
-        padding: 1rem;
-        max-width: 72rem; /* same as max-w-6xl */
-        min-height: calc(100vh - 8.2rem);
-        }
-        /* GIF Modal Styles */
-        #gif-modal {
-        position: fixed;
-        z-index: 50;
-        left: 0; top: 0;
-        width: 100%; height: 100%;
-        background-color: rgba(0, 0, 0, 0.85);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        }
-        #gif-modal-content {
-        background-color: #111;
-        padding: 2rem;
-        border: 2px solid #a855f7;
-        border-radius: 0.5rem;
-        width: 90%;
-        max-width: 600px;
-        max-height: 80vh;
-        overflow-y: auto;
-        }
-        #gif-grid img {
-        width: 100px;
-        height: auto;
-        margin: 5px;
-        cursor: pointer;
-        transition: transform 0.2s ease-in-out;
-        }
-        #gif-grid img:hover {
-        transform: scale(1.05);
-        }
+          }
+      
+          .main-chat {
+            margin-left: auto;
+            margin-right: auto;
+            padding: 1rem;
+            max-width: 72rem;
+            min-height: calc(100vh - 8.2rem);
+          }
+      
+          #gif-modal {
+            position: fixed;
+            z-index: 50;
+            left: 0; top: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+          }
+      
+          #gif-modal-content {
+            background-color: #111;
+            padding: 2rem;
+            border: 2px solid #a855f7;
+            border-radius: 0.5rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+          }
+      
+          #gif-grid img {
+            width: 100px;
+            height: auto;
+            margin: 5px;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+          }
+      
+          #gif-grid img:hover { transform: scale(1.05); }
+        </style>
+      </head>
+      
 
-    </style>
-    
-</head>
 <body class="bg-black text-purple-400">
-
-
-<!-- Header -->
 <header class="bg-black border-b-2 border-purple-500 shadow-md py-4">
-    <div class="text-5xl max-w-6xl mx-auto px-4 flex justify-between items-center">
+  <div class="text-5xl max-w-6xl mx-auto px-4 flex justify-between items-center">
     <a href="{{ url_for('main_routes.home') }}" class="text-purple-400 hover:text-purple-600 text-4xl font-bold mx-auto">⟁ Hermius ⟁</a>
     <span class="text-purple-600 text-sm sm:text-base absolute top-6 right-4">Room Code: <strong>{{ code }}</strong></span>
-    </div>
-  </header>
-  
-  <!-- Main Content -->
-  <main class="flex flex-grow max-w-6xl mx-auto mt-8 min-h-[90vh]">
-  
-    <!-- Sidebar -->
-    <aside class="w-64 bg-black border-r-2 border-purple-500 p-4 shadow-md">
-      <h2 class="text-2xl font-bold text-purple-500 mb-4">Users in Room</h2>
-      <ul id="user-list" class="text-purple-400 space-y-1"></ul>
-    </aside>
-  
-    <!-- Chat Area -->
-    <div class="flex-grow p-4">
-        <div class="bg-black border-2 border-purple-500 rounded-lg p-4 h-full mb-4 shadow-md flex flex-col">
-        <div id="chat-box" class="text-purple-400"></div>
-      </div>
-  
-      <!-- Typing indicator -->
-      <div id="typing-indicator" class="text-sm italic text-purple-500 mb-2"></div>
-  
-      <!-- Chat Form -->
-      <form id="chat-form" class="flex space-x-2 items-center">
-        <button type="button" id="emoji-btn" title="Insert Emoji" class="text-2xl">😄</button>
-        <button type="button" id="gif-btn" title="Insert GIF" class="text-2xl">🎬</button>
-        <input id="message-input" type="text" placeholder="Type your message..." class="flex-grow p-2 rounded border-2 border-purple-500 bg-black text-purple-300 focus:outline-none">
-        <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">Send</button>
-        <button id="disconnect-btn" class="ml-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Disconnect</button>
-    </form>
-    
-    </div>
-  </main>
-  
-  <!-- Footer -->
-<footer class="fixed bottom-0 left-0 w-full p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
-    <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
-    <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
-    <a href="{{ url_for('utility_routes.contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
-</footer>
-<!-- GIF Picker Modal -->
-<div id="gif-modal">
-    <div id="gif-modal-content" class="text-purple-400">
-      <div class="flex justify-between items-center mb-4">
-        <input id="gif-search-input" type="text" placeholder="Search GIFs..." class="p-2 w-full border border-purple-600 bg-black text-purple-300 rounded">
-        <button id="gif-close" class="ml-2 text-white px-2 py-1 bg-red-600 hover:bg-red-700 rounded">X</button>
-      </div>
-      <div id="gif-grid" class="flex flex-wrap justify-center gap-2"></div>
-    </div>
   </div>
-  
-<!-- Scripts -->
+</header>
+
+<main class="flex flex-grow max-w-6xl mx-auto mt-8 min-h-[90vh]">
+  <aside class="w-64 bg-black border-r-2 border-purple-500 p-4 shadow-md">
+    <h2 class="text-2xl font-bold text-purple-500 mb-4">Users in Room</h2>
+    <ul id="user-list" class="text-purple-400 space-y-1"></ul>
+  </aside>
+
+  <div class="flex-grow p-4">
+    <div class="bg-black border-2 border-purple-500 rounded-lg p-4 h-full mb-4 shadow-md flex flex-col overflow-y-auto" id="chat-box"></div>
+    <div id="typing-indicator" class="text-sm italic text-purple-500 mb-2"></div>
+
+    <form id="chat-form" class="flex space-x-2 items-center">
+      <button type="button" id="emoji-btn" title="Insert Emoji" class="text-2xl">😄</button>
+      <button type="button" id="gif-btn" title="Insert GIF" class="text-2xl">🎬</button>
+      <input id="message-input" type="text" placeholder="Type your message..." class="flex-grow p-2 rounded border-2 border-purple-500 bg-black text-purple-300 focus:outline-none">
+      <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">Send</button>
+      <button id="disconnect-btn" class="ml-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Disconnect</button>
+    </form>
+  </div>
+</main>
+
+<footer class="fixed bottom-0 left-0 w-full p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
+  <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
+  <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
+  <a href="{{ url_for('utility_routes.contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
+</footer>
+
+<!-- GIF Modal -->
+<div id="gif-modal">
+  <div id="gif-modal-content" class="text-purple-400">
+    <div class="flex justify-between items-center mb-4">
+      <input id="gif-search-input" type="text" placeholder="Search GIFs..." class="p-2 w-full border border-purple-600 bg-black text-purple-300 rounded">
+      <button id="gif-close" class="ml-2 text-white px-2 py-1 bg-red-600 hover:bg-red-700 rounded">X</button>
+    </div>
+    <div id="gif-grid" class="flex flex-wrap justify-center gap-2"></div>
+  </div>
+</div>
+
 <script>
     document.getElementById("year").textContent = new Date().getFullYear();
-</script>
-
+  </script>
 <script>
-    const socket = io();
-    const room = "{{ code }}";
-    const username = "{{ session['name'] }}";
+  const socket = io();
+  const room = "{{ code }}";
+  const username = "{{ session['name'] }}";
 
-    const chatBox = document.getElementById("chat-box");
-    const userList = document.getElementById("user-list");
-    const typingIndicator = document.getElementById("typing-indicator");
-    const input = document.getElementById("message-input");
+  const chatBox = document.getElementById("chat-box");
+  const userList = document.getElementById("user-list");
+  const typingIndicator = document.getElementById("typing-indicator");
+  const input = document.getElementById("message-input");
 
-    // Load old messages
-    fetch(`/initial_messages/${room}`)
-        .then(res => res.json())
-        .then(data => {
-            if (data.messages) {
-                data.messages.forEach(msg => {
-                    const sender = msg.user === username ? "You" : msg.user;
-                    const div = document.createElement("div");
-                    let messageContent = `<strong>${sender}:</strong> ${data.message}`;
-                    if (data.edited) {
-                        messageContent += ` <span class="text-xs italic text-purple-500">(edited)</span>`;
-                    }
-                    messageContent += ` <span class="text-xs text-gray-500">(${data.time || 'Just now'})</span>`;
+  let emojiSuggestions = [];
+  let selectedSuggestionIndex = -1;
 
-                    if (isSelf) {
-                        messageContent += `
-                            <button class="ml-2 text-yellow-400 hover:text-yellow-300 edit-btn" data-id="${data.message_id}" title="Edit">✏️</button>
-                            <button class="ml-1 text-red-500 hover:text-red-300 delete-btn" data-id="${data.message_id}" title="Delete">🗑️</button>
-                        `;
-                    } else {
-                        messageContent += `
-                            <button class="ml-2 text-pink-500 hover:text-pink-300 report-btn" data-id="${data.message_id}" title="Report">🛑</button>
-                        `;
-                    }
-
-                    div.innerHTML = messageContent;
-
-                    div.classList.add("mb-2", "text-purple-400");
-                    chatBox.appendChild(div);
-                });
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }
-        })
-        .catch(err => console.error("Failed to load messages:", err));
-
-    // Join room once connected
-    socket.on("connect", () => {
-        socket.emit("join_room", { room, username });
-        input.focus();
+  fetch(`/initial_messages/${room}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.messages) {
+        data.messages.forEach(renderMessage);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
     });
 
-    socket.on("receive_message", data => {
-        if (data && data.username && data.message) {
-            const isSelf = data.username === username;
-            const sender = isSelf ? "You" : data.username;
+  socket.on("connect", () => {
+    socket.emit("join_room", { room, username });
+    input.focus();
+  });
 
-            const div = document.createElement("div");
-            div.innerHTML = `<strong>${sender}:</strong> ${data.message} <span class="text-xs text-gray-500">(${data.time || 'Just now'})</span>`;
-            div.classList.add("mb-2", "text-purple-400");
-            chatBox.appendChild(div);
+  socket.on("receive_message", data => {
+    if (data?.username && data?.message) {
+      renderMessage({
+        user: data.username,
+        message: data.message,
+        time: data.time || 'Just now',
+        message_id: data.message_id || null
+      });
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  });
+  function replaceShortcodesWithEmojis(text) {
+  return text.replace(/:([a-zA-Z0-9_+-]+):/g, (_, shortcode) => {
+    const emoji = EmojiMartIndex.emojis[shortcode];
+    return emoji ? emoji.skins[0].native : `:${shortcode}:`;
+  });
+}
 
-            setTimeout(() => {
-                chatBox.scrollTop = chatBox.scrollHeight;
-            }, 100);
-        } else {
-            console.error("Invalid message received:", data);
+function renderMessage(msg) {
+  const isSelf = msg.user === username;
+  const div = document.createElement("div");
+  const sender = isSelf ? "You" : msg.user;
+
+  const parsedMessage = replaceShortcodesWithEmojis(msg.message);
+
+  let content = `<strong>${sender}:</strong> ${parsedMessage}`;
+  if (msg.edited) content += ` <span class="text-xs italic text-purple-500">(edited)</span>`;
+  content += ` <span class="text-xs text-gray-500">(${msg.time})</span>`;
+    if (msg.message_id) {
+      if (isSelf) {
+        content += `
+          <button class="ml-2 text-yellow-400 hover:text-yellow-300 edit-btn" data-id="${msg.message_id}">✏️</button>
+          <button class="ml-1 text-red-500 hover:text-red-300 delete-btn" data-id="${msg.message_id}">🗑️</button>`;
+      } else {
+        content += `<button class="ml-2 text-pink-500 hover:text-pink-300 report-btn" data-id="${msg.message_id}">🛑</button>`;
+      }
+    }
+    div.innerHTML = content;
+    div.classList.add("mb-2", "text-purple-400");
+    chatBox.appendChild(div);
+  }
+  chatBox.addEventListener("click", e => {
+      const msgId = e.target.dataset.id;
+      if (e.target.classList.contains("edit-btn")) {
+        const newContent = prompt("Edit your message:");
+        if (newContent) {
+          fetch(`/edit_message/${msgId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: newContent })
+          });
         }
-    });
-        chatBox.addEventListener("click", e => {
-        const msgId = e.target.dataset.id;
-        if (e.target.classList.contains("edit-btn")) {
-            const newContent = prompt("Edit your message:");
-            if (newContent) {
-                fetch(`/edit_message/${msgId}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: newContent })
-                });
-            }
-        } else if (e.target.classList.contains("delete-btn")) {
-            if (confirm("Delete this message?")) {
-                fetch(`/delete_message/${msgId}`, { method: "POST" });
-            }
-        } else if (e.target.classList.contains("report-btn")) {
-            if (confirm("Report this message?")) {
-                fetch(`/report_message/${msgId}`, { method: "POST" });
-            }
+      } else if (e.target.classList.contains("delete-btn")) {
+        if (confirm("Delete this message?")) {
+          fetch(`/delete_message/${msgId}`, { method: "POST" });
         }
+      } else if (e.target.classList.contains("report-btn")) {
+        if (confirm("Report this message?")) {
+          fetch(`/report_message/${msgId}`, { method: "POST" });
+        }
+      }
     });
 
+    const suggestionBox = document.createElement("div");
+    suggestionBox.id = "emoji-suggestions";
+    suggestionBox.className = "absolute w-fit z-50 bg-[#111] text-white rounded shadow-lg border border-purple-900 max-w-sm max-h-40 overflow-y-auto";
+    suggestionBox.style.display = "none";
+    document.getElementById("chat-form").appendChild(suggestionBox);
 
-    // Show server events (join/leave announcements)
-    socket.on("server_message", data => {
-        const popup = document.createElement("div");
-        popup.innerHTML = `<em>${data.msg}</em>`;
-        popup.classList.add("fixed", "bottom-40", "right-4", "bg-purple-600", "text-white", "p-2", "rounded", "shadow-md", "opacity-90", "transition", "duration-100", "ease-in-out");
-        document.body.appendChild(popup);
+    function updateEmojiSuggestions(query, keepSelection = false) {
+  emojiSuggestions = Object.keys(EmojiMartIndex.emojis).filter(e =>
+    e.startsWith(query.toLowerCase())
+  ).slice(0, 4); // 👈 LIMIT to 4 suggestions
 
-        setTimeout(() => {
-            popup.style.opacity = "0";
-            setTimeout(() => popup.remove(), 100);
-        }, 3000);
-    });
+  suggestionBox.innerHTML = "";
+  setTimeout(() => {
+  const inputRect = input.getBoundingClientRect();
+  suggestionBox.style.left = inputRect.left + "px";
+  suggestionBox.style.top = (inputRect.top - suggestionBox.offsetHeight - 8) + "px"; // 👈 8px above input
+}, 0);
 
-    // Update user list
-    socket.on("update_user_list", users => {
-        userList.innerHTML = "";
-        users.forEach(user => {
-            const li = document.createElement("li");
-            li.textContent = user;
-            userList.appendChild(li);
-        });
-    });
 
-    // Typing indicator
-    socket.on("user_typing", data => {
-        typingIndicator.textContent = `${data.username} is typing...`;
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => typingIndicator.textContent = "", 2000);
-    });
+  if (!keepSelection) {
+    selectedSuggestionIndex = 0; // Reset only if not navigating
+  }
 
-    socket.on("user_stopped_typing", data => {
-        typingIndicator.textContent = "";
-    });
+  emojiSuggestions.forEach((shortcode, index) => {
+    const emoji = EmojiMartIndex.emojis[shortcode];
+    const item = document.createElement("div");
+    item.textContent = `${emoji.skins[0].native} :${shortcode}:`;
+    item.className = "cursor-pointer px-2 py-1 hover:bg-purple-900 rounded";
 
-    let typingTimeout;
-    input.addEventListener("input", () => {
-        socket.emit("typing", { room, username });
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-            socket.emit("stop_typing", { room, username });
-        }, 2000);
-    });
+    if (index === selectedSuggestionIndex) {
+      item.classList.add("bg-purple-800");
+    }
 
-    document.getElementById("chat-form").addEventListener("submit", e => {
+    item.addEventListener("click", () => selectEmoji(shortcode));
+    suggestionBox.appendChild(item);
+  });
+
+  suggestionBox.style.display = emojiSuggestions.length > 0 ? "block" : "none";
+}
+
+
+    function selectEmoji(shortcode) {
+      const pos = input.selectionStart;
+      const textBeforeCursor = input.value.slice(0, pos);
+      const textAfterCursor = input.value.slice(pos);
+      const newTextBeforeCursor = textBeforeCursor.replace(/:([a-zA-Z0-9_+-]*)$/, `:${shortcode}:`);
+      input.value = newTextBeforeCursor + textAfterCursor;
+      const newPos = newTextBeforeCursor.length;
+      input.setSelectionRange(newPos, newPos);
+      suggestionBox.style.display = "none";
+      emojiSuggestions = [];
+    }
+
+    input.addEventListener("keydown", e => {
+  const match = input.value.slice(0, input.selectionStart).match(/:([a-zA-Z0-9_+-]*)$/);
+  if (emojiSuggestions.length > 0 && suggestionBox.style.display === "block") {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      selectedSuggestionIndex = (selectedSuggestionIndex + 1) % emojiSuggestions.length;
+      updateEmojiSuggestions(match?.[1] || "", true);  // Keep selection
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      selectedSuggestionIndex = (selectedSuggestionIndex - 1 + emojiSuggestions.length) % emojiSuggestions.length;
+      updateEmojiSuggestions(match?.[1] || "", true);
+    } else if (e.key === "Enter") {
+      if (match) {
         e.preventDefault();
-        const msg = input.value.trim();
-        if (msg) {
-            socket.emit("send_message", { room, message: msg });
-            input.value = "";
-            socket.emit("stop_typing", { room, username });
-        }
+        selectEmoji(emojiSuggestions[selectedSuggestionIndex]);
+        return;
+      }
+    }
+  }
+});
+
+
+    input.addEventListener("input", () => {
+      const pos = input.selectionStart;
+      const textBeforeCursor = input.value.slice(0, pos);
+      const match = textBeforeCursor.match(/:([a-zA-Z0-9_+-]*)$/);
+      if (match) {
+        updateEmojiSuggestions(match[1]);
+      } else {
+        suggestionBox.style.display = "none";
+      }
+
+      socket.emit("typing", { room, username });
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => {
+        socket.emit("stop_typing", { room, username });
+      }, 2000);
+    });
+    document.getElementById("chat-form").addEventListener("submit", e => {
+      e.preventDefault();
+      if (suggestionBox.style.display === "block" && emojiSuggestions.length > 0) {
+        // Select emoji first if suggestions are visible
+        selectEmoji(emojiSuggestions[selectedSuggestionIndex]);
+        return;
+      }
+      const msg = input.value.trim();
+      if (msg) {
+        socket.emit("send_message", { room, message: msg });
+        input.value = "";
+        suggestionBox.style.display = "none";
+        socket.emit("stop_typing", { room, username });
+      }
     });
 
     document.getElementById("disconnect-btn").addEventListener("click", () => {
+      socket.emit("leave_room", { room, username });
+      socket.disconnect();
+      window.location.href = "/";
+    });
+
+    socket.on("room_deleted", data => {
+      if (data.room === room) {
+        alert("This room has been deleted.");
         socket.emit("leave_room", { room, username });
         socket.disconnect();
         window.location.href = "/";
-    });
-    socket.on("room_deleted", data => {
-        if (data.room === room) {
-            alert("This room has been deleted due to inactivity.");
-            socket.emit("leave_room", { room, username });
-            socket.disconnect();
-            window.location.href = "/";
-        }
-    });
-    window.addEventListener("beforeunload", () => {
-        socket.emit("leave_room", { room, username });
-    });
-</script>
-<script>
-    // Emoji Picker
-    const emojiBtn = document.getElementById("emoji-btn");
-    const messageInput = document.getElementById("message-input");
-    const picker = new EmojiButton({ position: 'top-end', theme: 'dark' });
-
-    emojiBtn.addEventListener("click", () => {
-        picker.togglePicker(emojiBtn);
-    });
-
-    picker.on("emoji", emoji => {
-        messageInput.value += emoji;
-        messageInput.focus();
-    });
-
-    // Simple GIF inserter (uses prompt for now)
-    document.getElementById("gif-btn").addEventListener("click", () => {
-        const gifUrl = prompt("Paste GIF URL (e.g. from Tenor or Giphy):");
-        if (gifUrl) {
-            messageInput.value += ` <img src="${gifUrl}" alt="GIF" class="inline max-h-32"> `;
-            messageInput.focus();
-        }
-    });
-</script>
-<script>
-    const gifModal = document.getElementById('gif-modal');
-    const gifGrid = document.getElementById('gif-grid');
-    const gifSearchInput = document.getElementById('gif-search-input');
-    const gifBtn = document.getElementById('gif-btn');
-    const gifClose = document.getElementById('gif-close');
-    const inputField = document.getElementById('message-input');
-  
-    gifBtn.addEventListener('click', () => {
-      gifModal.style.display = 'flex';
-      gifSearchInput.value = '';
-      gifGrid.innerHTML = '';
-    });
-  
-    gifClose.addEventListener('click', () => {
-      gifModal.style.display = 'none';
-    });
-  
-    gifSearchInput.addEventListener('input', () => {
-      const query = gifSearchInput.value.toLowerCase();
-      gifGrid.innerHTML = '';
-  
-      // 👇 Local mock of GIF results
-      const mockGIFs = [
-        { keyword: 'happy', url: 'https://media.tenor.com/1.gif' },
-        { keyword: 'sad', url: 'https://media.tenor.com/2.gif' },
-        { keyword: 'dance', url: 'https://media.tenor.com/3.gif' },
-        { keyword: 'wave', url: 'https://media.tenor.com/4.gif' },
-        { keyword: 'shrug', url: 'https://media.tenor.com/5.gif' },
-        { keyword: 'ok', url: 'https://media.tenor.com/6.gif' },
-      ];
-  
-      const results = mockGIFs.filter(gif => gif.keyword.includes(query));
-      results.forEach(gif => {
-        const img = document.createElement('img');
-        img.src = gif.url;
-        img.alt = gif.keyword;
-        img.addEventListener('click', () => {
-          inputField.value += ` <img src="${gif.url}" alt="${gif.keyword}" class="inline max-h-32"> `;
-          gifModal.style.display = 'none';
-        });
-        gifGrid.appendChild(img);
-      });
-  
-      if (results.length === 0) {
-        gifGrid.innerHTML = '<p class="text-center text-purple-500 mt-4">No results found.</p>';
       }
     });
-  </script>
-<script>
-    // Close GIF modal when clicking outside of it
-    window.addEventListener('click', (event) => {
-        if (event.target === gifModal) {
-            gifModal.style.display = 'none';
-        }
+
+    window.addEventListener("beforeunload", () => {
+      socket.emit("leave_room", { room, username });
     });
-</script>  
+
+    // ------------------------ EMOJI PICKER ------------------------
+    document.addEventListener("DOMContentLoaded", () => {
+      const emojiBtn = document.getElementById("emoji-btn");
+
+      const emojiWrapper = document.createElement("div");
+      emojiWrapper.className =
+        "absolute z-50 bg-[#111] border border-purple-700 rounded-lg shadow-lg p-2 transition-opacity duration-200 w-fit";
+      emojiWrapper.style.display = "none";
+      document.getElementById("chat-form").appendChild(emojiWrapper);
+
+      const picker = new EmojiMart.Picker({
+        data: EmojiMartIndex,
+        theme: "dark",
+        previewPosition: "none",
+        emojiButtonSize: 32,
+        emojiSize: 24,
+        set: "native",
+        onEmojiSelect: emoji => {
+          input.value += emoji.native;
+          input.focus();
+          hideEmojiPicker();
+        },
+      });
+
+      emojiWrapper.appendChild(picker);
+
+      emojiBtn.addEventListener("click", () => {
+        const rect = emojiBtn.getBoundingClientRect();
+        emojiWrapper.style.left = `${rect.left}px`;
+        emojiWrapper.style.top = `${rect.bottom + 10}px`;
+        emojiWrapper.style.display = emojiWrapper.style.display === "none" ? "block" : "none";
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!emojiWrapper.contains(e.target) && e.target !== emojiBtn) {
+          hideEmojiPicker();
+        }
+      });
+
+      function hideEmojiPicker() {
+        emojiWrapper.style.display = "none";
+      }
+
+      // ------------------------ GIF MODAL ------------------------
+      const gifBtn = document.getElementById("gif-btn");
+      const gifModal = document.getElementById("gif-modal");
+      const gifGrid = document.getElementById("gif-grid");
+      const gifSearchInput = document.getElementById("gif-search-input");
+      const gifClose = document.getElementById("gif-close");
+
+      gifBtn.addEventListener("click", () => {
+        gifModal.style.display = 'flex';
+        gifSearchInput.value = '';
+        gifGrid.innerHTML = '';
+      });
+
+      gifClose.addEventListener("click", () => {
+        gifModal.style.display = 'none';
+      });
+
+      gifSearchInput.addEventListener("input", () => {
+        const query = gifSearchInput.value.toLowerCase();
+        gifGrid.innerHTML = '';
+
+        const mockGIFs = [
+          { keyword: 'happy', url: 'https://media.tenor.com/1.gif' },
+          { keyword: 'sad', url: 'https://media.tenor.com/2.gif' },
+          { keyword: 'dance', url: 'https://media.tenor.com/3.gif' },
+          { keyword: 'wave', url: 'https://media.tenor.com/4.gif' },
+          { keyword: 'shrug', url: 'https://media.tenor.com/5.gif' },
+          { keyword: 'ok', url: 'https://media.tenor.com/6.gif' }
+        ];
+
+        const results = mockGIFs.filter(gif => gif.keyword.includes(query));
+        results.forEach(gif => {
+          const img = document.createElement('img');
+          img.src = gif.url;
+          img.alt = gif.keyword;
+          img.className = "inline-block max-h-24 rounded hover:scale-105 transition-transform duration-150 cursor-pointer";
+          img.addEventListener('click', () => {
+            input.value += ` <img src="${gif.url}" alt="${gif.keyword}" class="inline max-h-32"> `;
+            gifModal.style.display = 'none';
+          });
+          gifGrid.appendChild(img);
+        });
+
+        if (results.length === 0) {
+          gifGrid.innerHTML = '<p class="text-center text-purple-500 mt-4">No results found.</p>';
+        }
+      });
+
+      window.addEventListener('click', (e) => {
+        if (e.target === gifModal) {
+          gifModal.style.display = 'none';
+        }
+      });
+    });
+</script>
+
 </body>
 </html>

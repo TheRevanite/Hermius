@@ -25,7 +25,6 @@ def create_tables():
         user TEXT,
         encrypted_message TEXT,
         datetime TEXT,
-        edited_at TEXT DEFAULT NULL,
         FOREIGN KEY (user) REFERENCES users (username)
     )''')
 
@@ -34,17 +33,6 @@ def create_tables():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         room_code TEXT UNIQUE NOT NULL,
         created_at TEXT
-    )''')
-
-    # NEW: Reports Table
-    c.execute('''CREATE TABLE IF NOT EXISTS reports (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        message_id INTEGER,
-        reporter TEXT,
-        reason TEXT,
-        reported_at TEXT,
-        FOREIGN KEY (message_id) REFERENCES messages (id),
-        FOREIGN KEY (reporter) REFERENCES users (username)
     )''')
 
     conn.commit()

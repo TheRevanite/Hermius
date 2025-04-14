@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hermius</title>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
     <style>
         .sidebar {
@@ -83,33 +84,45 @@
 
     <script>
         async function fetchActiveRooms() {
-            try {
-                const response = await fetch('/active_rooms');
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                const data = await response.json();
-                const activeRoomsList = document.getElementById('active-rooms-list');
-                activeRoomsList.innerHTML = '';
-
-                data.active_rooms.forEach(room => {
-                    const listItem = document.createElement('li');
-                    const link = document.createElement('a');
-                    link.href = `/room/${room}`;
-                    link.textContent = room;
-                    link.classList.add('text-purple-400', 'hover:text-purple-600', 'underline');
-                    listItem.appendChild(link);
-                    activeRoomsList.appendChild(listItem);
-                });
-
-                const countItem = document.createElement('li');
-                countItem.textContent = `Total Active Rooms: ${data.count}`;
-                countItem.classList.add('text-purple-400', 'font-bold');
-                activeRoomsList.appendChild(countItem);
-            } catch (error) {
-                console.error('Error fetching active rooms:', error);
-            }
+    try {
+        const response = await fetch('/active_rooms'); // Fetch active rooms from the backend
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
         }
+        const data = await response.json();
+        const activeRoomsList = document.getElementById('active-rooms-list');
+        activeRoomsList.innerHTML = ''; // Clear the current list
+
+        // Add each active room to the list
+        data.active_rooms.forEach(room => {
+            const listItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `/room/${room}`;
+            link.textContent = room;
+            link.classList.add('text-purple-400', 'hover:text-purple-600', 'underline');
+            listItem.appendChild(link);
+            activeRoomsList.appendChild(listItem);
+        });
+
+        // Add the total active rooms count
+        const countItem = document.createElement('li');
+        countItem.textContent = `Total Active Rooms: ${data.count}`;
+        countItem.classList.add('text-purple-400', 'font-bold');
+        activeRoomsList.appendChild(countItem);
+    } catch (error) {
+        console.error('Error fetching active rooms:', error);
+    }
+}
+        const socket = io(); // Ensure you initialize the Socket.IO client
+
+        socket.on('room_created', data => {
+    console.log('New room created:', data); // Debugging: Log the new room data
+    fetchActiveRooms(); // Refresh the active rooms list
+});
+socket.on('room_deleted', data => {
+    console.log('Room deleted event received:', data); // Debugging
+    fetchActiveRooms(); // Refresh the active rooms list
+});
 
         document.addEventListener('DOMContentLoaded', fetchActiveRooms);
     </script>

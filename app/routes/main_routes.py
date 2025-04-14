@@ -5,6 +5,8 @@ import random
 from app.utils.helpers import caesar_decrypt, generate_unique_code
 from app.database.db import get_db_connection
 from app.state import rooms
+from app.extensions import socketio
+
 
 main_routes = Blueprint('main_routes', __name__)
 
@@ -28,7 +30,7 @@ def home():
                 conn.commit()
 
                 rooms[room] = {"members": 0, "messages": []}
-
+                socketio.emit("room_created", {"room_code": room})
             except sqlite3.Error as e:
                 print(f"[ERROR] Database Error: {e}")
                 conn.close()

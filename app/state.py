@@ -34,17 +34,24 @@ def add_user_to_room(room, username):
 
 
 def remove_user_from_room(room, username):
+    print(f"[DEBUG] remove_user_from_room called for room: {room}, username: {username}")  # Debugging
     with state_lock:
         if room in room_users:
+            print(f"[DEBUG] Room {room} exists in room_users")  # Debugging
             room_users[room].discard(username)
+            print(f"[DEBUG] User {username} removed from room {room}. Remaining users: {room_users[room]}")  # Debugging
             if not room_users[room]:
+                print(f"[DEBUG] Room {room} is now empty. Emitting room_deleted event.")  # Debugging
+                socketio.emit("room_deleted", {"room_code": room})
                 room_users.pop(room)
                 room_activity.pop(room, None)
                 rooms.pop(room, None)
             else:
                 if room in rooms:
                     rooms[room]["members"] = max(0, rooms[room]["members"] - 1)
-
+                    print(f"[DEBUG] Updated room {room} members count: {rooms[room]['members']}")  # Debugging
+        else:
+            print(f"[DEBUG] Room {room} not found in room_users")  # Debugging
 
 def update_room_activity(room):
     with state_lock:
@@ -80,16 +87,14 @@ def cleanup_inactive_rooms(stop_event):
                     last_msg_time = datetime.strptime(result[0], "%Y-%m-%d %H:%M:%S.%f" if '.' in result[0] else "%Y-%m-%d %H:%M:%S")
                     if (now - last_msg_time).total_seconds() > INACTIVITY_TIMEOUT:
                         inactive.append(room)
-                else:
-                    # No messages ever — treat as inactive
-                    inactive.append(room)
 
             except Exception as e:
                 print(f"[ERROR] Error checking room activity: {e}")
 
         with state_lock:
             for room in inactive:
-                socketio.emit("room_deleted", {"room": room}, room=room)
+                print(f"Emitting room_deleted event for room: {room}")
+                socketio.emit("room_deleted", {"room_code": room})
 
                 rooms.pop(room, None)
                 room_users.pop(room, None)

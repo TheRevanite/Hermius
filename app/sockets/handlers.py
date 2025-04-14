@@ -53,15 +53,16 @@ def register_socketio_events(socketio: SocketIO):
         room = data.get("room")
 
         # Choose name: prefer logged-in username, else persistent anon name
-        if "username" in session:
+        if "username" in session and session["username"]:
             username = session["username"]
-        elif "name" not in session:
+        elif "name" not in session or not session["name"]:
             session["name"] = f"Anonymous {random.randint(1, 1000)}"
             username = session["name"]
         else:
             username = session["name"]
 
         session["room"] = room
+        session["name"] = username  # Ensure the session name is updated
 
         join_room(room)
         add_user_to_room(room, username)
@@ -112,13 +113,18 @@ def register_socketio_events(socketio: SocketIO):
         try:
             conn = sqlite3.connect('main.db')
             c = conn.cursor()
+            # Insert the message into the database
             c.execute("""
                 INSERT INTO messages (room_number, user, encrypted_message, datetime)
                 VALUES (?, ?, ?, ?)
             """, (room, username, encrypted_message, datetime.now()))
             conn.commit()
+
+            # Get the ID of the newly inserted message
+            message_id = c.lastrowid
         except sqlite3.Error as e:
             print(f"[ERROR] Database Error: {e}")
+            return
         finally:
             conn.close()
 
@@ -129,5 +135,6 @@ def register_socketio_events(socketio: SocketIO):
         emit("receive_message", {
             "username": username,
             "message": message,
-            "time": formatted_time
+            "time": formatted_time,
+            "message_id": message_id  # Use the ID as the message_id
         }, to=room)

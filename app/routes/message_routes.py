@@ -4,6 +4,9 @@ import os
 from datetime import datetime, timezone
 from ..database.db import get_db_connection  # Assumes this function exists
 from functools import wraps
+from ..utils.helpers import caesar_encrypt
+from app.extensions import socketio 
+
 
 message_routes = Blueprint("message_routes", __name__)
 UPLOAD_FOLDER = 'static/uploads'
@@ -40,8 +43,6 @@ def initial_messages(room):
     ).fetchall()
     conn.close()
     return jsonify({"messages": [dict(msg) for msg in messages]})
-
-
 @message_routes.route("/delete_message/<int:message_id>", methods=["POST"])
 @login_required
 def delete_message(message_id):
@@ -55,6 +56,11 @@ def delete_message(message_id):
         c.execute("DELETE FROM messages WHERE id = ?", (message_id,))
         conn.commit()
         conn.close()
+        socketio.emit(
+            "message_deleted",
+            {"message_id": message_id},
+            to=message["room"]
+        )
         return jsonify({"success": True, "message": "Message deleted successfully."})
     else:
         conn.close()
@@ -66,23 +72,37 @@ def delete_message(message_id):
 def edit_message(message_id):
     data = request.get_json()
     new_content = data.get("message")
+    print(f"[ DEBUG ] New content: {new_content}")
+    print(f"[ DEBUG ] Message ID: {message_id}")
+    if not new_content:
+        return jsonify({"success": False, "error": "Message content cannot be empty."}), 400
+
     conn = get_db_connection()
     c = conn.cursor()
 
     username = session["name"]
     message = c.execute("SELECT * FROM messages WHERE id = ?", (message_id,)).fetchone()
-
+    encrypted_message=caesar_encrypt(new_content)
     if message and message["user"] == username:
         c.execute(
-            "UPDATE messages SET content = ?, edited_at = ? WHERE id = ?",
-            (new_content, datetime.now(timezone.utc), message_id)
+            "UPDATE messages SET encrypted_message = ?, edited_at = ? WHERE id = ?",
+            (encrypted_message, datetime.now(timezone.utc).isoformat(), message_id)
         )
         conn.commit()
         conn.close()
-        return jsonify({"success": True, "message": "Message edited successfully."})
+        socketio.emit(
+            "message_edited",
+            {
+                "message_id": message_id,
+                "new_content": new_content,
+                "edited": True,
+            },
+            to=message["room"]
+        )
+        return jsonify({"success": True, "message": "Message edited successfully."}), 200
     else:
         conn.close()
-        return jsonify({"success": False, "error": "You can only edit your own messages."})
+        return jsonify({"success": False, "error": "You can only edit your own messages."}), 403
 
 
 @message_routes.route("/report_message/<int:message_id>", methods=["POST"])

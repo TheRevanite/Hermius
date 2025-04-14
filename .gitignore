@@ -39,3 +39,6 @@ coverage.xml
 
 # SocketIO session data (if stored locally)
 *.sock
+
+#database
+main.db

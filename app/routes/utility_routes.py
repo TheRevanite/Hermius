@@ -26,20 +26,17 @@ def contact():
         user_email = c.execute('SELECT email FROM users WHERE username = ?', (name,)).fetchone()
         conn.close()
         email = user_email[0] if user_email else ''
-
     if request.method == 'POST':
         contact_name = request.form.get('name')
         contact_email = request.form.get('email')
         message = request.form.get('message')
-
         if not contact_name or not contact_email or not message:
             flash('Please fill out all fields.', 'error')
             return redirect(url_for('utility_routes.contact'))
-
         msg = Message(
             subject=f"New Contact Form Submission from {contact_name}",
-            sender=Config['MAIL_USERNAME'],
-            recipients=['learnwithmegh@gmail.com', 'aadi.pani@gmail.com', 'ayushvinayemail@gmail.com'],
+            sender=Config.MAIL_USERNAME,
+            recipients=Config.MAIL_RECIPIENTS,
             body=f"Name: {contact_name}\nEmail: {contact_email}\n\nMessage:\n{message}"
         )
 

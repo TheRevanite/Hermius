@@ -11,22 +11,16 @@ from .routes.auth_routes import auth_routes as auth_bp
 from .routes.utility_routes import utility_routes as util_bp
 from .routes.message_routes import message_routes as message_bp
 
-
 def create_app():
-    # Load environment variables
     load_dotenv()
 
     app = Flask(__name__)
     app.config.from_object(DevConfig)
 
-    # Initialize Flask extensions
     mail.init_app(app)
     socketio.init_app(app)
 
-    # Create DB tables
     create_tables()
-
-    # Register blueprints
 
 
     app.register_blueprint(main_bp)

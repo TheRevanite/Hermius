@@ -4,19 +4,15 @@ import time
 from datetime import datetime
 from app.extensions import socketio
 
-# Mapping room -> set of users
+
 room_users = {}
 
-# Mapping room -> last activity timestamp (not needed if using DB)
 room_activity = {}
 
-# Shared state for room creation (used across app)
 rooms = {}
 
-# Lock to protect shared state
 state_lock = threading.Lock()
 
-# Time (in seconds) before a room is considered inactive
 INACTIVITY_TIMEOUT = 120
 
 
@@ -34,14 +30,10 @@ def add_user_to_room(room, username):
 
 
 def remove_user_from_room(room, username):
-    print(f"[DEBUG] remove_user_from_room called for room: {room}, username: {username}")  # Debugging
     with state_lock:
         if room in room_users:
-            print(f"[DEBUG] Room {room} exists in room_users")  # Debugging
             room_users[room].discard(username)
-            print(f"[DEBUG] User {username} removed from room {room}. Remaining users: {room_users[room]}")  # Debugging
             if not room_users[room]:
-                print(f"[DEBUG] Room {room} is now empty. Emitting room_deleted event.")  # Debugging
                 socketio.emit("room_deleted", {"room_code": room})
                 room_users.pop(room)
                 room_activity.pop(room, None)
@@ -49,10 +41,6 @@ def remove_user_from_room(room, username):
             else:
                 if room in rooms:
                     rooms[room]["members"] = max(0, rooms[room]["members"] - 1)
-                    print(f"[DEBUG] Updated room {room} members count: {rooms[room]['members']}")  # Debugging
-        else:
-            print(f"[DEBUG] Room {room} not found in room_users")  # Debugging
-
 def update_room_activity(room):
     with state_lock:
         room_activity[room] = time.time()
@@ -93,9 +81,7 @@ def cleanup_inactive_rooms(stop_event):
 
         with state_lock:
             for room in inactive:
-                print(f"Emitting room_deleted event for room: {room}")
                 socketio.emit("room_deleted", {"room_code": room})
-
                 rooms.pop(room, None)
                 room_users.pop(room, None)
                 room_activity.pop(room, None)

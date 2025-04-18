@@ -4,8 +4,10 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>FAQ</title>
+        <!-- Importing Tailwind CSS for styling -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
         <style>
+        /* Styling for the main content area */
         .content {
             flex-grow: 1;
             max-width: 80%;
@@ -16,6 +18,7 @@
             left: 0;
             bottom: 0rem; /* Adjust based on your footer height */
         }
+        /* Styling for FAQ question arrow animations */
         .faq-question .arrow {
             transition: transform 0.3s ease;
         }
@@ -25,18 +28,20 @@
         </style>
     </head>
 <body class="bg-black text-purple-200">
-    <!-- Navbar -->
+    <!-- Navbar Section -->
     <header class="bg-black border-b-2 border-purple-500 shadow-md p-4 flex justify-between items-center">
         <nav class="flex space-x-4">
+            <!-- Navigation links for ToS and FAQ -->
             <a href="{{ url_for('utility_routes.tos') }}" class="text-purple-400 hover:bg-purple-600 hover:text-white p-2 rounded transform transition-transform duration-200 hover:scale-105">ToS</a>
             <a class="bg-purple-600 text-white p-2 rounded">FAQ</a>
-
         </nav>
+        <!-- Website title with a link to the homepage -->
         <h1 class="text-3xl font-extrabold">
             <a href="{{ url_for('main_routes.home') }}" class="text-purple-400 hover:text-purple-600">⟁ Hermius ⟁</a>
         </h1>
         <div class="flex space-x-4">
             {% if session.get('username') %}
+            <!-- Dropdown menu for logged-in users -->
             <div class="relative" id="user-details-container">
                 <button class="text-purple-400 hover:bg-purple-600 hover:text-white p-2 rounded transform transition-transform duration-200 hover:scale-105" id="user-details-btn">User Details</button>
                 <div class="absolute right-0 mt-2 bg-black border-2 border-purple-500 shadow-md rounded-lg hidden z-50" id="user-details-dropdown">
@@ -46,34 +51,246 @@
                 </div>
             </div>
             {% else %}
+            <!-- Links for login and signup for non-logged-in users -->
             <a href="{{ url_for('auth_routes.login') }}" class="text-purple-400 hover:bg-purple-600 hover:text-white p-2 rounded transform transition-transform duration-200 hover:scale-105">Log In</a>
             <a href="{{ url_for('auth_routes.signup') }}" class="text-purple-400 hover:bg-purple-600 hover:text-white p-2 rounded transform transition-transform duration-200 hover:scale-105">Sign Up</a>
             {% endif %}
         </div>
     </header>   
+        <!-- Main Content Section -->
         <div class="flex justify-center">
             <div class="content max-w-7xl mx-auto mt-8 p-4 bg-black shadow-md rounded-lg border-2 border-purple-500">
             <div class="text-center">
+            <!-- FAQ Header -->
             <h2 class="text-5xl font-extrabold mb-6 text-purple-500">Frequently Asked Questions</h2>
             <p class="mb-8 text-lg text-purple-700">Find answers to common questions about Hermius</p>
             </div>
-            <div class="space-y-4">
-            <div class="faq-item">
-            <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
-                1. What is Hermius?
-                <span class="arrow">▼</span>
-            </button>
-            <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
-                <p>Hermius is an encrypted anonymous chatroom platform that allows users to communicate securely without revealing their identity. Users can create or join chat rooms anonymously or create an account for additional features.</p>
-            </div>
-            </div>
+            <!-- FAQ Categories and Questions -->
+            <div class="space-y-8">
+                <div>
+                    <h3 class="text-3xl font-bold text-purple-500 mb-4">General Questions</h3>
+                    <!-- Individual FAQ Items -->
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What is Hermius?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Hermius is a secure and anonymous chatroom platform that allows users to communicate without revealing their identity. It offers both anonymous chat options and account-based features for enhanced functionality.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            How does Hermius ensure my privacy?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Hermius uses end-to-end encryption to ensure that all messages are securely stored in the database. Only encrypted messages are saved, and no personal data is shared with third parties.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            Do I need to create an account to use Hermius?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>No, you can join chatrooms anonymously. However, creating an account unlocks additional features like modifying account details and accessing your user profile.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What features are available for registered users?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Registered users can:</p>
+                            <ul class="list-disc ml-6">
+                                <li>Modify their account details (username, email, password).</li>
+                                <li>Access their user profile.</li>
+                                <li>Enjoy a more personalized experience.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional FAQ Categories -->
+                <div>
+                    <h3 class="text-3xl font-bold text-purple-500 mb-4">Chatroom Questions</h3>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            How do I create a chatroom?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>You can create a chatroom by clicking the "Create a Room" button on the homepage. A unique room code will be generated for you.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            How do I join a chatroom?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>To join a chatroom, enter the room code provided by the creator and click "Join a Room."</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What happens if a chatroom becomes inactive?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Chatrooms are automatically deleted after a period of inactivity to keep the platform clean and efficient.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            Can I delete a chatroom I created?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Chatrooms are automatically deleted when all users leave or after a period of inactivity. There is no manual delete option.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Section -->
+                <footer class="p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
+                            Can I edit or delete my messages?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Yes, you can edit or delete your messages in real time. Changes will be reflected across all connected users.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What happens if I leave a chatroom?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>When you leave a chatroom, your messages remain in the chat history unless the chatroom is deleted.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-3xl font-bold text-purple-500 mb-4">Account Questions</h3>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            How do I create an account?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>You can create an account by clicking the "Sign Up" button on the homepage and filling out the required details.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            Can I change my username or email?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Yes, registered users can modify their username and email from the "Modify Account" page.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What should I do if I forget my password?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Currently, Hermius does not support password recovery. Please contact support for assistance.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            How do I delete my account?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>You can delete your account from the "Modify Account" page. This will also delete all your messages and data.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-3xl font-bold text-purple-500 mb-4">Technical Questions</h3>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What browsers are supported?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Hermius works best on modern browsers like Google Chrome, Mozilla Firefox, and Microsoft Edge.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            Is there a mobile app for Hermius?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Currently, Hermius is only available as a web application. A mobile app may be introduced in the future.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What should I do if I encounter a bug?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>If you encounter a bug, please use the "Contact Us" page to report it. Include as much detail as possible to help us resolve the issue.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            Can I use Hermius on multiple devices simultaneously?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Yes, you can log in and use Hermius on multiple devices at the same time.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-3xl font-bold text-purple-500 mb-4">Support Questions</h3>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            How do I contact support?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>You can contact support using the "Contact Us" page. Fill out the form with your name, email, and message, and we’ll get back to you as soon as possible.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            What should I do if I experience connection issues?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Ensure you have a stable internet connection and try refreshing the page. If the issue persists, contact support.</p>
+                        </div>
+                    </div>
+                    <div class="faq-item">
+                        <button class="faq-question w-full text-left text-lg font-semibold text-purple-800 flex justify-between items-center">
+                            Can I request new features?
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="faq-answer hidden mt-2 text-purple-800 bg-black p-2 rounded border-2 border-white-500">
+                            <p>Yes, we welcome feature requests! Use the "Contact Us" page to share your suggestions.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
             </div>
         </div>
 
     <!-- Footer -->
     <footer class="p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
-        <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
+        <a href="{{ url_for('utility_routes.privacy_policy') }}" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
         <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
         <a href="{{ url_for('utility_routes.contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
     </footer>

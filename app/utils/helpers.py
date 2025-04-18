@@ -1,6 +1,26 @@
 import random
 from string import ascii_uppercase
 import sqlite3
+from cryptography.fernet import Fernet
+
+def generate_key():
+    return Fernet.generate_key()
+
+key=generate_key()
+cipher_suite = Fernet(key)
+
+def encrypt_message(message):
+    if isinstance(message, str):
+        message = message.encode()
+    encrypted_message = cipher_suite.encrypt(message)
+    return encrypted_message
+
+def decrypt_message(encrypted_message):
+    if isinstance(encrypted_message, str):
+        encrypted_message = encrypted_message.encode()
+    decrypted_message = cipher_suite.decrypt(encrypted_message)
+    return decrypted_message.decode()
+
 
 def generate_unique_code(length):
     conn = sqlite3.connect('main.db')
@@ -12,16 +32,3 @@ def generate_unique_code(length):
             break
     conn.close()
     return code
-
-def caesar_encrypt(text, shift=3):
-    result = ""
-    for char in text:
-        if char.isalpha():
-            base = ord("a") if char.islower() else ord("A")
-            result += chr((ord(char) - base + shift) % 26 + base)
-        else:
-            result += char
-    return result
-
-def caesar_decrypt(encrypted_text):
-    return caesar_encrypt(encrypted_text, -3)

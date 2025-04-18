@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 import random
 
-from app.utils.helpers import caesar_encrypt
+from app.utils.helpers import encrypt_message
 from app.state import (
     rooms,
     add_user_to_room,
@@ -52,7 +52,6 @@ def register_socketio_events(socketio: SocketIO):
     def handle_join(data):
         room = data.get("room")
 
-        # Choose name: prefer logged-in username, else persistent anon name
         if "username" in session and session["username"]:
             username = session["username"]
         elif "name" not in session or not session["name"]:
@@ -62,7 +61,7 @@ def register_socketio_events(socketio: SocketIO):
             username = session["name"]
 
         session["room"] = room
-        session["name"] = username  # Ensure the session name is updated
+        session["name"] = username
 
         join_room(room)
         add_user_to_room(room, username)
@@ -108,27 +107,23 @@ def register_socketio_events(socketio: SocketIO):
             return
 
         message = data["message"]
-        encrypted_message = caesar_encrypt(message)
+        encrypted_message = encrypt_message(message)
 
         try:
             conn = sqlite3.connect('main.db')
             c = conn.cursor()
-            # Insert the message into the database
             c.execute("""
                 INSERT INTO messages (room_number, user, encrypted_message, datetime)
                 VALUES (?, ?, ?, ?)
             """, (room, username, encrypted_message, datetime.now()))
             conn.commit()
 
-            # Get the ID of the newly inserted message
             message_id = c.lastrowid
         except sqlite3.Error as e:
-            print(f"[ERROR] Database Error: {e}")
             return
         finally:
             conn.close()
 
-        # Update room activity timestamp
         update_room_activity(room)
 
         formatted_time = datetime.now().strftime("%I:%M %p")
@@ -136,5 +131,5 @@ def register_socketio_events(socketio: SocketIO):
             "username": username,
             "message": message,
             "time": formatted_time,
-            "message_id": message_id  # Use the ID as the message_id
+            "message_id": message_id
         }, to=room)

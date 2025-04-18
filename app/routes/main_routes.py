@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from datetime import datetime
 import sqlite3
 import random
-from app.utils.helpers import caesar_decrypt, generate_unique_code
+from app.utils.helpers import decrypt_message, generate_unique_code
 from app.database.db import get_db_connection
 from app.state import rooms
 from app.extensions import socketio
@@ -32,7 +32,6 @@ def home():
                 rooms[room] = {"members": 0, "messages": []}
                 socketio.emit("room_created", {"room_code": room})
             except sqlite3.Error as e:
-                print(f"[ERROR] Database Error: {e}")
                 conn.close()
                 return render_template("home.html", error=f"Database error: {str(e)}", code=code)
 
@@ -75,7 +74,7 @@ def room(room_code):
     
     decrypted_messages = []
     for user, encrypted_message, timestamp in encrypted_messages:
-        decrypted_message = caesar_decrypt(encrypted_message)
+        decrypted_message = decrypt_message(encrypted_message)
         decrypted_messages.append({"user": user, "message": decrypted_message, "time": timestamp})
 
     return render_template("room.html", code=room_code, messages=decrypted_messages)
@@ -86,11 +85,9 @@ def initial_messages(room_code):
     conn = get_db_connection()
     c = conn.cursor()
     try:
-        # Fetch all messages for the room from the database
         c.execute("SELECT user, encrypted_message, datetime FROM messages WHERE room_number=? ORDER BY datetime", (room_code,))
         raw_messages = c.fetchall()
     except sqlite3.Error as e:
-        print(f"[ERROR] Database Error: {e}")
         return jsonify({"error": "Failed to load messages"}), 500
     finally:
         conn.close()
@@ -99,10 +96,9 @@ def initial_messages(room_code):
     current_user= session.get("name", "Anonymous")
     for user, encrypted_message, timestamp in raw_messages:
         user = user or "Anonymous"
-        decrypted_message = caesar_decrypt(encrypted_message)
+        decrypted_message = decrypt_message(encrypted_message)
         display_user = "You" if user == current_user else user
         formatted_time = datetime.now().strftime("%I:%M %p")
         messages.append({"user": display_user, "message": decrypted_message, "time": formatted_time})
 
-    # Return all messages as JSON to ensure they are resent upon reload
     return jsonify({"messages": messages})

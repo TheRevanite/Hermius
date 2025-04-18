@@ -6,13 +6,6 @@
     <title>Signup - Hermius</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
     <style>
-        .sidebar {
-            position: absolute;
-            top: 4.6rem;
-            bottom: 3.6rem;
-            width: 20%;
-            overflow-y: auto;
-        }
         .main-content {
             margin-left: 20%;
             margin-right: 20%;
@@ -50,22 +43,6 @@
             {% endif %}
         </div>
     </header>
-
-    <!-- Sidebars -->
-    <aside class="sidebar left-0 bg-black border-r-2 border-purple-500 shadow-md p-4">
-        <h2 class="text-2xl font-bold text-purple-500 mb-4">Recent Active Rooms</h2>
-        <ul class="text-purple-800">
-            <li>General Chat <span class="text-purple-400">24 users online</span></li>
-            <li>Tech Talk <span class="text-purple-400">15 users online</span></li>
-            <li>Private Discussion <span class="text-purple-400">5 users online</span></li>
-        </ul>
-    </aside>
-
-    <aside class="sidebar right-0 bg-black border-l-2 border-purple-500 shadow-md p-4">
-        <h2 class="text-2xl font-bold text-purple-500 mb-4">Users Online</h2>
-        <p class="text-purple-800">196 (150)</p>
-        <p class="text-purple-400">Active in multiple rooms</p>
-    </aside>
     <!-- Main Content -->
 <main class="main-content bg-black flex flex-col justify-center items-center">
     <div class="container mx-auto p-4 text-center">
@@ -121,7 +98,7 @@
 
     <!-- Footer -->
     <footer class="p-4 text-purple-600 bg-black border-t-2 border-purple-500 shadow-md flex justify-between items-center">
-        <a href="" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
+        <a href="{{ url_for('utility_routes.privacy_policy') }}" class="text-purple-400 hover:text-purple-600">Privacy Policy</a>
         <p>&copy; <span id="year"></span> Hermius. All rights reserved.</p>
         <a href="{{ url_for('utility_routes.contact') }}" class="text-purple-400 hover:text-purple-600">Contact Us</a>
     </footer>

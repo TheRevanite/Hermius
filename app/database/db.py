@@ -9,7 +9,6 @@ def create_tables():
     conn = get_db_connection()
     c = conn.cursor()
 
-    # Users Table
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
@@ -18,7 +17,6 @@ def create_tables():
         member_since TEXT
     )''')
 
-    # Updated Messages Table
     c.execute('''CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         room_number TEXT,
@@ -28,7 +26,6 @@ def create_tables():
         FOREIGN KEY (user) REFERENCES users (username)
     )''')
 
-    # Rooms Table
     c.execute('''CREATE TABLE IF NOT EXISTS rooms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         room_code TEXT UNIQUE NOT NULL,

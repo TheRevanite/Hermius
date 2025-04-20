@@ -1,5 +1,5 @@
 from flask_socketio import SocketIO, emit, join_room, leave_room, send
-from flask import request, session
+from flask import session
 import sqlite3
 from datetime import datetime
 import random

@@ -1,7 +1,4 @@
 from flask import Blueprint, redirect, url_for, session, flash, jsonify
-from werkzeug.utils import secure_filename
-
-from datetime import datetime, timezone
 from ..database.db import get_db_connection
 from functools import wraps
 
